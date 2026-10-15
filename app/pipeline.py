@@ -153,6 +153,18 @@ def job_snapshot(job_id: str) -> dict:
     return job.to_dict()
 
 
+def reset_workspace() -> dict:
+    with _LOCK:
+        running = _running_job()
+        if running is not None:
+            raise ValueError("Another task is still running.")
+        _JOBS.clear()
+        current = session()
+        current.reset()
+    clear_probe_cache()
+    return {"ok": True}
+
+
 def type_counts(rows: list[tuple[str, str]]) -> list[dict]:
     counts = Counter(rows)
     summary = [

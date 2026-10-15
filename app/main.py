@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from app.convert import tool_status
 from app.pipeline import (
     job_snapshot,
+    reset_workspace,
     resolve_duplicates,
     start_compare,
     start_plan,
@@ -54,6 +55,14 @@ def _value_error(exc: ValueError) -> HTTPException:
 @app.get("/api/tools")
 def tools() -> dict:
     return tool_status()
+
+
+@app.post("/api/reset")
+def reset() -> dict:
+    try:
+        return reset_workspace()
+    except ValueError as exc:
+        raise _value_error(exc) from exc
 
 
 @app.post("/api/browse")

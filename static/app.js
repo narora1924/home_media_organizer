@@ -56,18 +56,77 @@ function showStep(number) {
   }
 }
 
-function startOver() {
+async function startOver() {
   if (state.deletedCount > 0) {
     const leave = window.confirm("Some input files were already deleted. Start over from the folder step?");
     if (!leave) return;
+  }
+  const buttons = document.querySelectorAll("#back-folders, #back-from-compare, #back-from-plan, #finish-over");
+  buttons.forEach((button) => {
+    button.disabled = true;
+  });
+  try {
+    await postJson("/api/reset");
+  } catch (error) {
+    const unavailable = /not allowed|not found/i.test(error.message);
+    if (!unavailable) {
+      const step = Number(document.querySelector(".steps li.active")?.dataset.step || 1);
+      showError(step, error.message);
+      return;
+    }
+  } finally {
+    buttons.forEach((button) => {
+      button.disabled = false;
+    });
   }
   state.scan = null;
   state.resolve = null;
   state.compare = null;
   state.plan = null;
   state.deletedCount = 0;
-  clearError(1);
+  clearWorkspace();
   showStep(1);
+}
+
+function clearWorkspace() {
+  for (let step = 1; step <= 5; step += 1) clearError(step);
+  for (const id of ["#scan-progress", "#dup-progress", "#compare-progress", "#plan-progress", "#run-progress"]) {
+    const node = document.querySelector(id);
+    node.hidden = id !== "#run-progress";
+    node.innerHTML = "";
+  }
+  for (const id of [
+    "#dup-summary",
+    "#compare-summary",
+    "#plan-summary",
+    "#skip-summary",
+    "#run-summary",
+    "#dup-list",
+    "#other-list",
+    "#ignore-list",
+    "#plan-list",
+    "#skip-list",
+    "#run-list",
+    "#scan-errors",
+    "#compare-errors",
+    "#run-failures",
+    "#modal-list",
+  ]) {
+    const node = document.querySelector(id);
+    node.innerHTML = "";
+    if (node.classList.contains("callout") || id === "#run-summary") node.hidden = true;
+  }
+  document.querySelector("#dup-filter-note").textContent = "";
+  document.querySelector("#resolve-note").textContent = "";
+  document.querySelector("#modal-count").textContent = "";
+  for (const id of ["#dup-filter", "#ignore-filter", "#plan-filter"]) {
+    document.querySelector(id).value = "";
+  }
+  for (const id of ["#scan-button", "#apply-duplicates", "#continue-plan", "#start-run"]) {
+    document.querySelector(id).disabled = false;
+  }
+  document.querySelector("#start-run").textContent = "Copy these files";
+  closeModal();
 }
 
 async function loadTools() {
@@ -75,8 +134,14 @@ async function loadTools() {
     state.tools = await getJson("/api/tools");
     const ffmpeg = state.tools.ffmpeg_found ? `ffmpeg: ${state.tools.ffmpeg}` : "ffmpeg was not found on PATH";
     const ffprobe = state.tools.ffprobe_found ? `ffprobe: ${state.tools.ffprobe}` : "ffprobe was not found on PATH";
-    toolStatus.textContent = `${ffmpeg}. ${ffprobe}.`;
+    const ready = state.tools.ffmpeg_found && state.tools.ffprobe_found;
+    toolStatus.classList.toggle("ok", ready);
+    toolStatus.classList.toggle("bad", !ready);
+    toolStatus.title = `${ffmpeg}. ${ffprobe}.`;
+    toolStatus.textContent = ready ? "ffmpeg and ffprobe are ready" : `${ffmpeg}. ${ffprobe}.`;
   } catch (error) {
+    toolStatus.classList.remove("ok");
+    toolStatus.classList.add("bad");
     toolStatus.textContent = error.message;
   }
 }
