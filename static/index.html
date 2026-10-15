@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home media organizer</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Local library</p>
+      <h1>Home media organizer</h1>
+    </div>
+    <ol class="steps" id="steps">
+      <li data-step="1" class="active">Folders</li>
+      <li data-step="2">Duplicates</li>
+      <li data-step="3">Already saved</li>
+      <li data-step="4">Copy plan</li>
+      <li data-step="5">Run</li>
+    </ol>
+  </header>
+
+  <main>
+    <section id="step-1" class="panel">
+      <h2>Choose the folders</h2>
+      <p class="lede">This step looks through the input folder, including nested folders. It counts every file type. Duplicate checking reads only photos and videos. Files that are not media are listed here and are not copied. Nothing is deleted or written until you confirm a later step.</p>
+      <p id="tool-status" class="status">Checking ffmpeg…</p>
+      <form id="folder-form">
+        <label>
+          Input folder
+          <span class="row">
+            <input id="input-dir" type="text" spellcheck="false" placeholder="D:\Photos\Inbox" required>
+            <button type="button" data-browse="input">Browse</button>
+          </span>
+        </label>
+        <label>
+          Output folder
+          <span class="row">
+            <input id="output-dir" type="text" spellcheck="false" placeholder="D:\Photos\Library" required>
+            <button type="button" data-browse="output">Browse</button>
+          </span>
+        </label>
+        <div class="actions">
+          <button type="submit" id="scan-button">Find duplicates</button>
+        </div>
+      </form>
+      <div id="scan-progress" class="progress" hidden></div>
+      <p id="step1-error" class="error" hidden></p>
+    </section>
+
+    <section id="step-2" class="panel" hidden>
+      <h2>Duplicate files</h2>
+      <p class="lede">This step groups media files that have the same contents. Keep one file in each group. Ignore leaves the extra copy on disk and drops it from this run. Delete removes it from the input folder after you confirm the list. Files that are not photos or videos are counted and shown below, and they are not copied.</p>
+      <div id="dup-summary" class="summary"></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="mark-ignore">Ignore all extras</button>
+        <button type="button" class="secondary" id="mark-delete">Mark all extras for deletion</button>
+        <input id="dup-filter" type="search" placeholder="Filter by path" aria-label="Filter duplicate paths">
+      </div>
+      <div id="dup-list" class="list"></div>
+      <p id="dup-filter-note" class="note"></p>
+      <h3>Files that are not media</h3>
+      <p class="lede">These files were counted with the totals above. They are not checked for duplicates and are not copied to the output folder.</p>
+      <div id="other-list" class="list"></div>
+      <div id="scan-errors" class="callout" hidden></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="back-folders">Start over</button>
+        <button type="button" id="apply-duplicates">Apply choices and continue</button>
+      </div>
+      <div id="dup-progress" class="progress" hidden></div>
+      <p id="step2-error" class="error" hidden></p>
+    </section>
+
+    <section id="step-3" class="panel" hidden>
+      <h2>Already in the output folder</h2>
+      <p class="lede">This step compares the media files you kept with the output folder. A file is ignored when the same bytes are already there, or when this organizer has already converted that exact input file. Nothing is copied yet.</p>
+      <div id="compare-progress" class="progress" hidden></div>
+      <div id="compare-summary" class="summary"></div>
+      <p id="resolve-note" class="note"></p>
+      <input id="ignore-filter" type="search" placeholder="Filter ignored files" aria-label="Filter ignored files">
+      <div id="ignore-list" class="list"></div>
+      <div id="compare-errors" class="callout" hidden></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="back-from-compare">Start over</button>
+        <button type="button" id="continue-plan">Continue</button>
+      </div>
+      <p id="step3-error" class="error" hidden></p>
+    </section>
+
+    <section id="step-4" class="panel" hidden>
+      <h2>Files that will be copied</h2>
+      <p class="lede">This step reads the date inside each remaining media file and chooses its year and month folder. If the file has no date inside it, the older of the file's created and modified times is used. JPG and MP4 files that are already compatible will be copied as-is. Other images will be converted to JPG. Other videos will be converted to H.264/AAC MP4. A file that already has that name in the output folder is replaced. A JPG and a HEIC, or an MP4 and a MOV, that share the same name also replace that one file instead of adding a second copy. Nothing is written until you click the button.</p>
+      <div id="plan-progress" class="progress" hidden></div>
+      <div id="plan-summary" class="summary"></div>
+      <input id="plan-filter" type="search" placeholder="Filter planned files" aria-label="Filter planned files">
+      <div id="plan-list" class="list"></div>
+      <h3>Skipped</h3>
+      <div id="skip-summary" class="summary"></div>
+      <div id="skip-list" class="list"></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="back-from-plan">Start over</button>
+        <button type="button" id="start-run">Copy these files</button>
+      </div>
+      <p id="step4-error" class="error" hidden></p>
+    </section>
+
+    <section id="step-5" class="panel" hidden>
+      <h2>Converting and copying</h2>
+      <p class="lede">This step writes the files into the output folder. Several files are handled at once. Compatible JPG and MP4 files are copied. Other images become JPG. Other videos become H.264/AAC MP4.</p>
+      <div id="run-progress" class="progress"></div>
+      <div id="run-summary" class="summary" hidden></div>
+      <div id="run-failures" class="callout" hidden></div>
+      <h3>Written files</h3>
+      <div id="run-list" class="list"></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="finish-over">Start over</button>
+      </div>
+      <p id="step5-error" class="error" hidden></p>
+    </section>
+  </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title">Delete these input files?</h2>
+      <p id="modal-count"></p>
+      <div id="modal-list" class="list"></div>
+      <div class="actions">
+        <button type="button" class="secondary" id="modal-cancel">Cancel</button>
+        <button type="button" id="modal-confirm">Delete and continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

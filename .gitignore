@@ -1,0 +1,6 @@
+.venv/
+xenv/
+__pycache__/
+*.pyc
+.media_organizer_cache.sqlite
+.media_organizer_cache.sqlite-*
